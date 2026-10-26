@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UKom Coach</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1b1f24;--mute:#6b7280;--line:#e2e5ea;--acc:#1f5fbf;--ok:#16794a;--okbg:#e6f5ec;--bad:#b3261e;--badbg:#fdeceb}
+@media (prefers-color-scheme:dark){:root{--bg:#14171b;--card:#1c2127;--ink:#e8ebef;--mute:#9aa4b0;--line:#2c333b;--acc:#6aa3f5;--ok:#58c58c;--okbg:#17301f;--bad:#f08b84;--badbg:#3a1d1b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:1.3rem;margin:.2rem 0 1rem}h2{font-size:1.05rem;margin:1.2rem 0 .5rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grow{flex:1}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;cursor:pointer}
+button.p{background:var(--acc);border-color:var(--acc);color:#fff}
+button:disabled{opacity:.5;cursor:default}
+select,input[type=number]{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 10px;max-width:100%}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.stat{background:var(--bg);border-radius:10px;padding:10px;text-align:center}.stat b{display:block;font-size:1.3rem}
+.mute{color:var(--mute);font-size:.88rem}
+.opt{display:block;width:100%;text-align:left;margin:8px 0;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card)}
+.opt.ok{border-color:var(--ok);background:var(--okbg)}.opt.bad{border-color:var(--bad);background:var(--badbg)}.opt.sel{border-color:var(--acc);outline:2px solid var(--acc)}
+.expl{margin-top:10px;padding:12px;border-radius:10px;background:var(--bg);font-size:.95rem}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--acc)}
+.tag{display:inline-block;font-size:.78rem;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin-right:6px}
+.timer{font-variant-numeric:tabular-nums;font-weight:600}.timer.low{color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:.9rem}td,th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left}td.n,th.n{text-align:right}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script src="data/questions.js"></script>
+<script>
+"use strict";
+const Q = window.QUESTIONS || [];
+const KEY = "ukom-coach-v1";
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// ---------- persistence (per-question stats, Leitner boxes) ----------
+let store = {};
+try { store = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { store = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} };
+const stat = id => store[id] || (store[id] = { n: 0, ok: 0, box: 0, due: 0, last: null });
+const DAY = 864e5, GAP = [0, 1, 2, 4, 7];            // days until next review per box
+function record(id, correct) {
+  const s = stat(id); s.n++; s.last = correct;
+  if (correct) { s.ok++; s.box = Math.min(s.box + 1, 4); } else s.box = 0;
+  s.due = Date.now() + GAP[s.box] * DAY; save();
+}
+
+// ---------- helpers ----------
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const topics = () => [...new Set(Q.map(q => q.topic))];
+const wrongIds = () => Q.filter(q => store[q.id] && store[q.id].last === false);
+const dueIds = () => Q.filter(q => store[q.id] && store[q.id].box < 4 && store[q.id].n > 0 && store[q.id].due <= Date.now());
+const unseen = () => Q.filter(q => !store[q.id] || !store[q.id].n);
+const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
+
+// ---------- session state ----------
+let S = null, tick = null;
+
+function home() {
+  clearInterval(tick); S = null;
+  const seen = Q.length - unseen().length;
+  const att = Object.values(store).reduce((a, s) => a + s.n, 0), ok = Object.values(store).reduce((a, s) => a + s.ok, 0);
+  const tps = topics();
+  $("#app").innerHTML = `
+  <h1>UKom Coach</h1>
+  <div class="card"><div class="stats">
+    <div class="stat"><b>${Q.length}</b>soal</div>
+    <div class="stat"><b>${seen}</b>sudah dicoba</div>
+    <div class="stat"><b>${att ? Math.round(ok / att * 100) : 0}%</b>akurasi</div>
+    <div class="stat"><b>${wrongIds().length}</b>perlu diulang</div>
+  </div></div>
+  ${Q.length ? "" : '<div class="card">Bank soal belum ada. Jalankan <code>python3 build.py</code>.</div>'}
+  <div class="card"><h2 style="margin-top:0">Latihan</h2>
+    <div class="row"><select id="topic" class="grow"><option value="">Semua topik</option>${tps.map(t => `<option>${esc(t)}</option>`).join("")}</select>
+    <select id="filter"><option value="all">Semua soal</option><option value="new">Belum dicoba</option><option value="wrong">Yang pernah salah</option></select></div>
+    <div class="row" style="margin-top:8px"><label>Jumlah <input id="cnt" type="number" min="5" max="200" value="30" style="width:80px"></label>
+    <button class="p" id="go-practice">Mulai latihan</button></div></div>
+  <div class="card"><h2 style="margin-top:0">Review (spaced repetition)</h2>
+    <p class="mute" style="margin:.2rem 0 .6rem">${dueIds().length} soal jatuh tempo. Benar naik level dan jedanya makin panjang, salah kembali ke awal.</p>
+    <button class="p" id="go-review" ${dueIds().length ? "" : "disabled"}>Review ${dueIds().length} soal</button></div>
+  <div class="card"><h2 style="margin-top:0">Simulasi ujian</h2>
+    <div class="row"><label>Soal <input id="ecnt" type="number" min="10" max="200" value="50" style="width:80px"></label>
+    <label>Menit <input id="emin" type="number" min="5" max="180" value="60" style="width:80px"></label>
+    <button class="p" id="go-exam">Mulai simulasi</button></div>
+    <p class="mute" style="margin:.5rem 0 0">Tanpa pembahasan sampai selesai. Soal diambil acak dari semua topik.</p></div>
+  <div class="card"><h2 style="margin-top:0">Per topik</h2><table><tr><th>Topik</th><th class="n">Soal</th><th class="n">Akurasi</th></tr>
+    ${tps.map(t => { const qs = Q.filter(q => q.topic === t); let a = 0, o = 0; qs.forEach(q => { const s = store[q.id]; if (s) { a += s.n; o += s.ok; } });
+      return `<tr><td>${esc(t)}</td><td class="n">${qs.length}</td><td class="n">${a ? Math.round(o / a * 100) + "%" : "-"}</td></tr>`; }).join("")}</table></div>
+  <div class="row"><button id="reset">Hapus progres</button></div>`;
+  $("#go-practice").onclick = () => {
+    let pool = Q; const t = $("#topic").value, f = $("#filter").value;
+    if (t) pool = pool.filter(q => q.topic === t);
+    if (f === "new") pool = pool.filter(q => !store[q.id] || !store[q.id].n);
+    if (f === "wrong") pool = pool.filter(q => store[q.id] && store[q.id].last === false);
+    start("practice", pool, +$("#cnt").value);
+  };
+  $("#go-review").onclick = () => start("practice", dueIds(), 200);
+  $("#go-exam").onclick = () => start("exam", Q, +$("#ecnt").value, +$("#emin").value * 60000);
+  $("#reset").onclick = () => { if (confirm("Hapus semua progres?")) { store = {}; save(); home(); } };
+}
+
+function start(mode, pool, n, ms) {
+  if (!pool.length) { alert("Tidak ada soal untuk filter ini."); return; }
+  const items = shuffle(pool).slice(0, n || 30).map(q => {
+    const idx = shuffle([0, 1, 2, 3]);
+    return { q, idx, pick: null };            // idx[k] = original option index shown at position k
+  });
+  S = { mode, items, i: 0, end: ms ? Date.now() + ms : 0 };
+  if (ms) { clearInterval(tick); tick = setInterval(() => { const t = $("#timer"); if (!t) return; const left = S.end - Date.now(); t.textContent = fmt(left); t.classList.toggle("low", left < 60000); if (left <= 0) finish(); }, 500); }
+  show();
+}
+
+function show() {
+  const it = S.items[S.i], q = it.q, exam = S.mode === "exam", done = it.pick !== null;
+  const L = "ABCD";
+  $("#app").innerHTML = `
+  <div class="row"><button id="quit">Keluar</button><span class="grow mute">Soal ${S.i + 1} / ${S.items.length}</span>${exam ? '<span class="timer" id="timer">' + fmt(S.end - Date.now()) + "</span>" : ""}</div>
+  <div class="bar"><i style="width:${(S.i + 1) / S.items.length * 100}%"></i></div>
+  <div class="card"><div><span class="tag">${esc(q.topic)}</span><span class="tag">${esc(q.src)}</span></div>
+    <p style="font-size:1.05rem;margin:.8rem 0">${esc(q.q)}</p>
+    ${it.idx.map((oi, k) => {
+      let c = "opt";
+      if (done && !exam) c += oi === q.a ? " ok" : (k === it.pick ? " bad" : "");
+      else if (k === it.pick) c += " sel";
+      return `<button class="${c}" data-k="${k}"><b>${L[k]}.</b> ${esc(q.o[oi])}</button>`;
+    }).join("")}
+    ${done && !exam ? `<div class="expl"><b>${it.idx[it.pick] === q.a ? "Benar." : "Salah. Jawaban: " + L[it.idx.indexOf(q.a)] + "."}</b> ${esc(q.e)}</div>` : ""}
+  </div>
+  <div class="row"><button id="prev" ${S.i ? "" : "disabled"}>Sebelumnya</button><span class="grow"></span>
+    ${S.i < S.items.length - 1 ? '<button class="p" id="next" ' + (done || exam ? "" : "disabled") + ">Berikutnya</button>" : '<button class="p" id="fin" ' + (done || exam ? "" : "disabled") + ">Selesai</button>"}</div>`;
+  document.querySelectorAll(".opt").forEach(b => b.onclick = () => {
+    if (!exam && it.pick !== null) return;
+    it.pick = +b.dataset.k;
+    if (!exam) record(q.id, it.idx[it.pick] === q.a);
+    show();
+  });
+  $("#quit").onclick = () => { if (confirm("Keluar dari sesi?")) home(); };
+  $("#prev").onclick = () => { S.i--; show(); };
+  const nx = $("#next"); if (nx) nx.onclick = () => { S.i++; show(); };
+  const fn = $("#fin"); if (fn) fn.onclick = finish;
+}
+
+function finish() {
+  clearInterval(tick);
+  const exam = S.mode === "exam";
+  if (exam) S.items.forEach(it => { if (it.pick !== null) record(it.q.id, it.idx[it.pick] === it.q.a); else record(it.q.id, false); });
+  const ok = S.items.filter(it => it.pick !== null && it.idx[it.pick] === it.q.a).length, tot = S.items.length;
+  const wrong = S.items.filter(it => !(it.pick !== null && it.idx[it.pick] === it.q.a));
+  $("#app").innerHTML = `
+  <h1>Hasil</h1>
+  <div class="card"><div class="stats"><div class="stat"><b>${ok}/${tot}</b>benar</div><div class="stat"><b>${Math.round(ok / tot * 100)}%</b>nilai</div></div></div>
+  ${wrong.length ? `<h2>Perlu dibahas (${wrong.length})</h2>` + wrong.map(it => { const q = it.q;
+    return `<div class="card"><div><span class="tag">${esc(q.topic)}</span><span class="tag">${esc(q.src)}</span></div><p>${esc(q.q)}</p>
+    <div class="mute">Jawabanmu: ${it.pick === null ? "(kosong)" : esc(q.o[it.idx[it.pick]])}</div>
+    <div><b style="color:var(--ok)">Benar: ${esc(q.o[q.a])}</b></div><div class="expl">${esc(q.e)}</div></div>`; }).join("") : ""}
+  <div class="row"><button class="p" id="home">Kembali</button></div>`;
+  $("#home").onclick = home;
+}
+
+home();
+</script>
+</body>
+</html>
