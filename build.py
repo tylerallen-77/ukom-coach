@@ -6,6 +6,7 @@ import os
 import sys
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+SUBS = {"c": "Pengawasan", "p": "Pemeriksaan", "t": "Penagihan"}
 parts = sorted(glob.glob(os.path.join(ROOT, "data", "parts", "*.json")))
 questions, errors, seen = [], [], set()
 
@@ -28,6 +29,7 @@ for path in parts:
             errors.append(f"{where}: duplicate question text")
         seen.add(it.get("q"))
         it["id"] = qid
+        it["sub"] = SUBS[name[0]]
         questions.append(it)
 
 if errors:
