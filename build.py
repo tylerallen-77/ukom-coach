@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Merge data/parts/*.json into data/questions.json and data/questions.js, validating as it goes."""
 import glob
+import re
 import json
 import os
 import sys
@@ -24,6 +25,46 @@ UNIT_BY_TOPIC = {
     "Penanggung Pajak": ADV, "Upaya Hukum Gugatan Penagihan": ADV,
 }
 UNIT_DEFAULT = {"Pengawasan": ADV, "Pemeriksaan": PMR, "Penagihan": LUAR}
+SRC_RE = re.compile(r"^(Part\s?(\d)|Penagihan|Pemeriksaan P(\d))\s*(?:s\.|slide)\s*([\d,\-– ]+)")
+LEAD_RE = re.compile(r"^(?:Part\s?\d|Penagihan|Pemeriksaan P\d)?\s*(?:slide|s\.)\s*[\d,\-– ]+(?:dan\s*[\d]+)?[.;:]?\s*", re.I)
+
+def ref_of(src):
+    m = SRC_RE.match(src or "")
+    if not m:
+        return None
+    nums = m.group(4).strip().rstrip(",-– ")
+    word = "Slide" if re.search(r"[,\-–]", nums) is None else "Slide"
+    if m.group(2):
+        where = f"Part {m.group(2)}"
+    elif m.group(3):
+        where = f"materi Pemeriksaan Part {m.group(3)}"
+    else:
+        where = "materi Penagihan"
+    return f"{word} {nums} {where}"
+
+def statement(it):
+    q, o, a = it["q"].strip(), it["o"], it["a"]
+    ans = o[a].rstrip(".")
+    others = [x.rstrip(".") for i, x in enumerate(o) if i != a]
+    suffix = f" Pilihan lain ({'; '.join(others)}) tidak tepat."
+    if re.search(r"KECUALI\W*$", q):
+        head = re.split(r",?\s*KECUALI", q)[0].rstrip(" ,.:…")
+        return f"{head}: yang BUKAN termasuk adalah \"{ans}\". Yang termasuk: " + "; ".join(others) + "."
+    if " ... " in q:
+        return q.replace(" ... ", f" {ans} ", 1).rstrip(" .") + "." + suffix
+    if q.endswith("...") or q.endswith("…"):
+        return f"{q[:-3].rstrip()}: {ans}." + suffix
+    return f"{q.rstrip()} {ans}." + suffix
+
+def enrich(it):
+    e = it.get("e", "").strip()
+    if "(referensi di" in e:
+        return e
+    body = LEAD_RE.sub("", e).strip()
+    body = body.rstrip(".") + "." if len(body) >= 80 else statement(it)
+    ref = ref_of(it.get("src", ""))
+    return f"{body} (referensi di {ref})" if ref else body
+
 parts = sorted(glob.glob(os.path.join(ROOT, "data", "parts", "*.json")))
 questions, errors, seen = [], [], set()
 
@@ -46,8 +87,10 @@ for path in parts:
             errors.append(f"{where}: duplicate question text")
         seen.add(it.get("q"))
         it["id"] = qid
-        it["sub"] = SUBS[name[0]]
-        it["unit"] = UNIT_BY_TOPIC.get(it.get("topic"), UNIT_DEFAULT[it["sub"]])
+        it["sub"] = it.get("sub") or SUBS[name[0]]
+        it["unit"] = it.get("unit") or UNIT_BY_TOPIC.get(it.get("topic"), UNIT_DEFAULT[it["sub"]])
+        it["lvl"] = it.get("lvl", "standar")
+        it["e"] = enrich(it)
         questions.append(it)
 
 if errors:

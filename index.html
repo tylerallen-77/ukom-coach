@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UKom Coach</title>
 <style>
-:root{--bg:#f6f7f9;--card:#fff;--ink:#1b1f24;--mute:#6b7280;--line:#e2e5ea;--acc:#1f5fbf;--ok:#16794a;--okbg:#e6f5ec;--bad:#b3261e;--badbg:#fdeceb}
-@media (prefers-color-scheme:dark){:root{--bg:#14171b;--card:#1c2127;--ink:#e8ebef;--mute:#9aa4b0;--line:#2c333b;--acc:#6aa3f5;--ok:#58c58c;--okbg:#17301f;--bad:#f08b84;--badbg:#3a1d1b}}
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1b1f24;--mute:#6b7280;--line:#e2e5ea;--acc:#1f5fbf;--ok:#16794a;--okbg:#e6f5ec;--bad:#b3261e;--badbg:#fdeceb;--hard:#9a5b00;--hardbg:#fff3df}
+@media (prefers-color-scheme:dark){:root{--bg:#14171b;--card:#1c2127;--ink:#e8ebef;--mute:#9aa4b0;--line:#2c333b;--acc:#6aa3f5;--ok:#58c58c;--okbg:#17301f;--bad:#f08b84;--badbg:#3a1d1b;--hard:#f0b45a;--hardbg:#3a2c12}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 main{max-width:760px;margin:0 auto;padding:16px}
@@ -26,11 +26,14 @@ select,input[type=number]{background:var(--card);border:1px solid var(--line);bo
 .opt.ok{border-color:var(--ok);background:var(--okbg)}.opt.bad{border-color:var(--bad);background:var(--badbg)}.opt.sel{border-color:var(--acc);outline:2px solid var(--acc)}
 .expl{margin-top:10px;padding:12px;border-radius:10px;background:var(--bg);font-size:.95rem}
 .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--acc)}
-.tag{display:inline-block;font-size:.78rem;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin-right:6px}
+.tag{display:inline-block;font-size:.78rem;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin:0 6px 4px 0}
+.tag.hard{color:var(--hard);background:var(--hardbg);border-color:var(--hard)}
 .timer{font-variant-numeric:tabular-nums;font-weight:600}.timer.low{color:var(--bad)}
 table{width:100%;border-collapse:collapse;font-size:.9rem}td,th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left}td.n,th.n{text-align:right}
-.hidden{display:none}
+.choose{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:12px 0}
+.choose button{text-align:left;padding:18px;border-radius:14px}.choose b{display:block;font-size:1.1rem;margin-bottom:4px}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.tabs button{flex:1;min-width:90px;text-align:center}.tabs button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.tog{display:flex;gap:8px;align-items:center}
 </style>
 </head>
 <body>
@@ -39,74 +42,107 @@ table{width:100%;border-collapse:collapse;font-size:.9rem}td,th{padding:6px 4px;
 <script>
 "use strict";
 const Q = window.QUESTIONS || [];
-const KEY = "ukom-coach-v1", SKEY = "ukom-coach-sub", UKEY = "ukom-coach-unit";
-const SUBS = ["Pengawasan", "Pemeriksaan", "Penagihan"];
-let SUB = ""; try { SUB = localStorage.getItem(SKEY) || ""; } catch (e) {}
-let UNIT = ""; try { UNIT = localStorage.getItem(UKEY) || ""; } catch (e) {}
-const UNITS = [...new Set(Q.map(q => q.unit).filter(Boolean))];
-if (UNIT && !UNITS.includes(UNIT)) UNIT = "";
-const scope = () => Q.filter(q => (!SUB || q.sub === SUB) && (!UNIT || q.unit === UNIT));
+const KEY = "ukom-coach-v1", PKEY = "ukom-coach-prefs";
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-// ---------- persistence (per-question stats, Leitner boxes) ----------
+// ---------- konstanta kategori ----------
+const SUBS = ["Pengawasan", "Pemeriksaan", "Penagihan"];
+const SKT = ["Advokasi Kebijakan Perpajakan", "Analisis Potensi Pajak", "Analisis Kepatuhan Wajib Pajak", "Profiling Wajib Pajak",
+             "Ekstensifikasi Perpajakan", "Pemeriksaan Pajak", "Analis Profil Risiko Wajib Pajak"];
+const LVLS = [["", "Semua tingkat"], ["standar", "Standar"], ["sulit", "Sulit saja"]];
+
+// ---------- persistence ----------
 let store = {};
 try { store = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { store = {}; }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} };
+let prefs = { sub: "", unit: "", lvl: "", think: false };
+try { prefs = Object.assign(prefs, JSON.parse(localStorage.getItem(PKEY) || "{}")); } catch (e) {}
+const savePrefs = () => { try { localStorage.setItem(PKEY, JSON.stringify(prefs)); } catch (e) {} };
 const stat = id => store[id] || (store[id] = { n: 0, ok: 0, box: 0, due: 0, last: null });
-const DAY = 864e5, GAP = [0, 1, 2, 4, 7];            // days until next review per box
+const DAY = 864e5, GAP = [0, 1, 2, 4, 7];
 function record(id, correct) {
   const s = stat(id); s.n++; s.last = correct;
   if (correct) { s.ok++; s.box = Math.min(s.box + 1, 4); } else s.box = 0;
   s.due = Date.now() + GAP[s.box] * DAY; save();
 }
 
-// ---------- helpers ----------
+// ---------- state & scope ----------
+let MODE = "";                 // "" = layar awal, "all" = semua soal, "skt" = sesuai SKT
+let S = null, tick = null;
+const base = () => MODE === "skt" ? Q.filter(q => SKT.includes(q.unit)) : Q;
+const scope = () => base().filter(q =>
+  (MODE !== "all" || !prefs.sub || q.sub === prefs.sub) &&
+  (MODE !== "skt" || !prefs.unit || q.unit === prefs.unit) &&
+  (!prefs.lvl || q.lvl === prefs.lvl));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const topics = () => [...new Set(scope().map(q => q.topic))];
-const wrongIds = () => scope().filter(q => store[q.id] && store[q.id].last === false);
-const dueIds = () => scope().filter(q => store[q.id] && store[q.id].box < 4 && store[q.id].n > 0 && store[q.id].due <= Date.now());
-const unseen = () => scope().filter(q => !store[q.id] || !store[q.id].n);
 const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
 
-// ---------- session state ----------
-let S = null, tick = null;
-
-function home() {
-  clearInterval(tick); S = null;
-  const sc = scope(), seen = sc.length - unseen().length;
-  let att = 0, ok = 0; sc.forEach(q => { const s = store[q.id]; if (s) { att += s.n; ok += s.ok; } });
-  const tps = topics();
+// ---------- layar awal ----------
+function chooser() {
+  clearInterval(tick); S = null; MODE = "";
+  const nSkt = Q.filter(q => SKT.includes(q.unit)).length;
   $("#app").innerHTML = `
   <h1>UKom Coach</h1>
-  <div class="tabs"><button data-sub="" class="${SUB ? "" : "on"}">Semua (${Q.length})</button>${SUBS.map(x => `<button data-sub="${x}" class="${SUB === x ? "on" : ""}">${x} (${Q.filter(q => q.sub === x).length})</button>`).join("")}</div>
-  <div class="row" style="margin-bottom:12px"><select id="unit" class="grow"><option value="">Semua unit kompetensi</option>${UNITS.map(u => `<option ${u === UNIT ? "selected" : ""} value="${esc(u)}">${esc(u)} (${Q.filter(q => q.unit === u && (!SUB || q.sub === SUB)).length})</option>`).join("")}</select></div>
+  <p class="mute">Pilih cara belajar.</p>
+  <div class="choose">
+    <button class="p" id="m-all"><b>Belajar semua soal</b>${Q.length} soal. Dikelompokkan per subkategori: Pengawasan, Pemeriksaan, dan Penagihan.</button>
+    <button class="p" id="m-skt"><b>Sesuai SKT</b>${nSkt} soal. Dikelompokkan per 7 unit kompetensi pada Standar Kompetensi Teknis.</button>
+  </div>`;
+  $("#m-all").onclick = () => { MODE = "all"; home(); };
+  $("#m-skt").onclick = () => { MODE = "skt"; home(); };
+}
+
+// ---------- beranda per mode ----------
+function home() {
+  if (!MODE) return chooser();
+  clearInterval(tick); S = null;
+  const sc = scope(), b = base();
+  const seen = sc.filter(q => store[q.id] && store[q.id].n).length;
+  let att = 0, ok = 0; sc.forEach(q => { const s = store[q.id]; if (s) { att += s.n; ok += s.ok; } });
+  const wrong = sc.filter(q => store[q.id] && store[q.id].last === false);
+  const due = sc.filter(q => store[q.id] && store[q.id].box < 4 && store[q.id].n > 0 && store[q.id].due <= Date.now());
+  const cur = prefs.sub;
+  const topics = [...new Set(sc.map(q => q.topic))];
+  $("#app").innerHTML = `
+  <div class="row"><button id="back">← Ganti mode</button><span class="grow"></span><span class="mute">${MODE === "all" ? "Semua soal" : "Sesuai SKT"}</span></div>
+  <h1>UKom Coach</h1>
+  ${MODE === "all"
+    ? `<div class="tabs"><button data-k="" class="${cur ? "" : "on"}">Semua (${b.length})</button>${SUBS.map(k => `<button data-k="${k}" class="${cur === k ? "on" : ""}">${k} (${b.filter(q => q.sub === k).length})</button>`).join("")}</div>`
+    : `<div class="row" style="margin-bottom:12px"><select id="unit" class="grow"><option value="">Semua 7 unit kompetensi (${b.length})</option>${SKT.map(k => `<option value="${esc(k)}" ${prefs.unit === k ? "selected" : ""}>${esc(k)} (${b.filter(q => q.unit === k).length})</option>`).join("")}</select></div>`}
+  <div class="card row">
+    <label>Tingkat <select id="lvl">${LVLS.map(([v, t]) => `<option value="${v}" ${prefs.lvl === v ? "selected" : ""}>${t} (${b.filter(q => !v || q.lvl === v).length})</option>`).join("")}</select></label>
+    <label class="tog"><input type="checkbox" id="think" ${prefs.think ? "checked" : ""}> Pikir dulu (pilihan disembunyikan sampai diklik)</label>
+  </div>
   <div class="card"><div class="stats">
     <div class="stat"><b>${sc.length}</b>soal</div>
     <div class="stat"><b>${seen}</b>sudah dicoba</div>
     <div class="stat"><b>${att ? Math.round(ok / att * 100) : 0}%</b>akurasi</div>
-    <div class="stat"><b>${wrongIds().length}</b>perlu diulang</div>
+    <div class="stat"><b>${wrong.length}</b>perlu diulang</div>
   </div></div>
-  ${Q.length ? "" : '<div class="card">Bank soal belum ada. Jalankan <code>python3 build.py</code>.</div>'}
+  ${sc.length ? "" : '<div class="card">Tidak ada soal untuk filter ini.</div>'}
   <div class="card"><h2 style="margin-top:0">Latihan</h2>
-    <div class="row"><select id="topic" class="grow"><option value="">Semua topik</option>${tps.map(t => `<option>${esc(t)}</option>`).join("")}</select>
+    <div class="row"><select id="topic" class="grow"><option value="">Semua topik</option>${topics.map(t => `<option>${esc(t)}</option>`).join("")}</select>
     <select id="filter"><option value="all">Semua soal</option><option value="new">Belum dicoba</option><option value="wrong">Yang pernah salah</option></select></div>
     <div class="row" style="margin-top:8px"><label>Jumlah <input id="cnt" type="number" min="5" max="200" value="30" style="width:80px"></label>
     <button class="p" id="go-practice">Mulai latihan</button></div></div>
   <div class="card"><h2 style="margin-top:0">Review (spaced repetition)</h2>
-    <p class="mute" style="margin:.2rem 0 .6rem">${dueIds().length} soal jatuh tempo. Benar naik level dan jedanya makin panjang, salah kembali ke awal.</p>
-    <button class="p" id="go-review" ${dueIds().length ? "" : "disabled"}>Review ${dueIds().length} soal</button></div>
+    <p class="mute" style="margin:.2rem 0 .6rem">${due.length} soal jatuh tempo. Benar naik level dan jedanya makin panjang, salah kembali ke awal.</p>
+    <button class="p" id="go-review" ${due.length ? "" : "disabled"}>Review ${due.length} soal</button></div>
   <div class="card"><h2 style="margin-top:0">Simulasi ujian</h2>
     <div class="row"><label>Soal <input id="ecnt" type="number" min="10" max="200" value="50" style="width:80px"></label>
     <label>Menit <input id="emin" type="number" min="5" max="180" value="60" style="width:80px"></label>
     <button class="p" id="go-exam">Mulai simulasi</button></div>
-    <p class="mute" style="margin:.5rem 0 0">Tanpa pembahasan sampai selesai. Soal diambil acak dari semua topik pada tab yang dipilih.</p></div>
+    <p class="mute" style="margin:.5rem 0 0">Tanpa pembahasan sampai selesai. Soal diambil acak dari filter yang sedang aktif.</p></div>
   <div class="card"><h2 style="margin-top:0">Per topik</h2><table><tr><th>Topik</th><th class="n">Soal</th><th class="n">Akurasi</th></tr>
-    ${tps.map(t => { const qs = sc.filter(q => q.topic === t); let a = 0, o = 0; qs.forEach(q => { const s = store[q.id]; if (s) { a += s.n; o += s.ok; } });
+    ${topics.map(t => { const qs = sc.filter(q => q.topic === t); let a = 0, o = 0; qs.forEach(q => { const s = store[q.id]; if (s) { a += s.n; o += s.ok; } });
       return `<tr><td>${esc(t)}</td><td class="n">${qs.length}</td><td class="n">${a ? Math.round(o / a * 100) + "%" : "-"}</td></tr>`; }).join("")}</table></div>
   <div class="row"><button id="reset">Hapus progres</button></div>`;
-  document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { SUB = b.dataset.sub; try { localStorage.setItem(SKEY, SUB); } catch (e) {} home(); });
-  $("#unit").onchange = e => { UNIT = e.target.value; try { localStorage.setItem(UKEY, UNIT); } catch (er) {} home(); };
+  $("#back").onclick = chooser;
+  document.querySelectorAll(".tabs button").forEach(x => x.onclick = () => { prefs.sub = x.dataset.k; savePrefs(); home(); });
+  const u = $("#unit"); if (u) u.onchange = e => { prefs.unit = e.target.value; savePrefs(); home(); };
+  $("#lvl").onchange = e => { prefs.lvl = e.target.value; savePrefs(); home(); };
+  $("#think").onchange = e => { prefs.think = e.target.checked; savePrefs(); };
   $("#go-practice").onclick = () => {
     let pool = sc; const t = $("#topic").value, f = $("#filter").value;
     if (t) pool = pool.filter(q => q.topic === t);
@@ -114,21 +150,20 @@ function home() {
     if (f === "wrong") pool = pool.filter(q => store[q.id] && store[q.id].last === false);
     start("practice", pool, +$("#cnt").value);
   };
-  $("#go-review").onclick = () => start("practice", dueIds(), 200);
+  $("#go-review").onclick = () => start("practice", due, 200);
   $("#go-exam").onclick = () => start("exam", sc, +$("#ecnt").value, +$("#emin").value * 60000);
   $("#reset").onclick = () => { if (confirm("Hapus semua progres?")) { store = {}; save(); home(); } };
 }
 
 function start(mode, pool, n, ms) {
   if (!pool.length) { alert("Tidak ada soal untuk filter ini."); return; }
-  const items = shuffle(pool).slice(0, n || 30).map(q => {
-    const idx = shuffle([0, 1, 2, 3]);
-    return { q, idx, pick: null };            // idx[k] = original option index shown at position k
-  });
+  const items = shuffle(pool).slice(0, n || 30).map(q => ({ q, idx: shuffle([0, 1, 2, 3]), pick: null, shown: !prefs.think }));
   S = { mode, items, i: 0, end: ms ? Date.now() + ms : 0 };
   if (ms) { clearInterval(tick); tick = setInterval(() => { const t = $("#timer"); if (!t) return; const left = S.end - Date.now(); t.textContent = fmt(left); t.classList.toggle("low", left < 60000); if (left <= 0) finish(); }, 500); }
   show();
 }
+
+const tags = q => `${q.lvl === "sulit" ? '<span class="tag hard">Sulit</span>' : ""}<span class="tag">${esc(q.sub || "")}</span><span class="tag">${esc(q.unit || "")}</span><span class="tag">${esc(q.topic)}</span>`;
 
 function show() {
   const it = S.items[S.i], q = it.q, exam = S.mode === "exam", done = it.pick !== null;
@@ -136,18 +171,19 @@ function show() {
   $("#app").innerHTML = `
   <div class="row"><button id="quit">Keluar</button><span class="grow mute">Soal ${S.i + 1} / ${S.items.length}</span>${exam ? '<span class="timer" id="timer">' + fmt(S.end - Date.now()) + "</span>" : ""}</div>
   <div class="bar"><i style="width:${(S.i + 1) / S.items.length * 100}%"></i></div>
-  <div class="card"><div><span class="tag">${esc(q.unit || q.sub || "")}</span><span class="tag">${esc(q.topic)}</span><span class="tag">${esc(q.src)}</span></div>
+  <div class="card"><div>${tags(q)}</div>
     <p style="font-size:1.05rem;margin:.8rem 0">${esc(q.q)}</p>
-    ${it.idx.map((oi, k) => {
+    ${it.shown ? it.idx.map((oi, k) => {
       let c = "opt";
       if (done && !exam) c += oi === q.a ? " ok" : (k === it.pick ? " bad" : "");
       else if (k === it.pick) c += " sel";
       return `<button class="${c}" data-k="${k}"><b>${L[k]}.</b> ${esc(q.o[oi])}</button>`;
-    }).join("")}
+    }).join("") : '<p class="mute">Jawab dulu di kepala, lalu tampilkan pilihan.</p><button class="p" id="reveal">Tampilkan pilihan</button>'}
     ${done && !exam ? `<div class="expl"><b>${it.idx[it.pick] === q.a ? "Benar." : "Salah. Jawaban: " + L[it.idx.indexOf(q.a)] + "."}</b> ${esc(q.e)}</div>` : ""}
   </div>
   <div class="row"><button id="prev" ${S.i ? "" : "disabled"}>Sebelumnya</button><span class="grow"></span>
     ${S.i < S.items.length - 1 ? '<button class="p" id="next" ' + (done || exam ? "" : "disabled") + ">Berikutnya</button>" : '<button class="p" id="fin" ' + (done || exam ? "" : "disabled") + ">Selesai</button>"}</div>`;
+  const rv = $("#reveal"); if (rv) rv.onclick = () => { it.shown = true; show(); };
   document.querySelectorAll(".opt").forEach(b => b.onclick = () => {
     if (!exam && it.pick !== null) return;
     it.pick = +b.dataset.k;
@@ -170,14 +206,14 @@ function finish() {
   <h1>Hasil</h1>
   <div class="card"><div class="stats"><div class="stat"><b>${ok}/${tot}</b>benar</div><div class="stat"><b>${Math.round(ok / tot * 100)}%</b>nilai</div></div></div>
   ${wrong.length ? `<h2>Perlu dibahas (${wrong.length})</h2>` + wrong.map(it => { const q = it.q;
-    return `<div class="card"><div><span class="tag">${esc(q.topic)}</span><span class="tag">${esc(q.src)}</span></div><p>${esc(q.q)}</p>
+    return `<div class="card"><div>${tags(q)}</div><p>${esc(q.q)}</p>
     <div class="mute">Jawabanmu: ${it.pick === null ? "(kosong)" : esc(q.o[it.idx[it.pick]])}</div>
     <div><b style="color:var(--ok)">Benar: ${esc(q.o[q.a])}</b></div><div class="expl">${esc(q.e)}</div></div>`; }).join("") : ""}
   <div class="row"><button class="p" id="home">Kembali</button></div>`;
   $("#home").onclick = home;
 }
 
-home();
+chooser();
 </script>
 </body>
 </html>
