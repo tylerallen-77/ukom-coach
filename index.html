@@ -5,103 +5,221 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UKom Coach</title>
 <style>
-:root{--bg:#f6f7f9;--card:#fff;--ink:#1b1f24;--mute:#6b7280;--line:#e2e5ea;--acc:#1f5fbf;--ok:#16794a;--okbg:#e6f5ec;--bad:#b3261e;--badbg:#fdeceb}
-@media (prefers-color-scheme:dark){:root{--bg:#14171b;--card:#1c2127;--ink:#e8ebef;--mute:#9aa4b0;--line:#2c333b;--acc:#6aa3f5;--ok:#58c58c;--okbg:#17301f;--bad:#f08b84;--badbg:#3a1d1b}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-main{max-width:760px;margin:0 auto;padding:16px}
-h1{font-size:1.3rem;margin:.2rem 0 1rem}h2{font-size:1.05rem;margin:1.2rem 0 .5rem}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.grow{flex:1}
-button,select,input{font:inherit;color:inherit}
-button{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;cursor:pointer}
-button.p{background:var(--acc);border-color:var(--acc);color:#fff}
-button:disabled{opacity:.5;cursor:default}
+:root{
+  --nav:#1a1446;--nav2:#2a2270;--nav-line:#3a3190;--nav-ink:#c9c4f0;
+  --acc:#5b45e6;--acc2:#8b5cf6;--acc-soft:#efecff;--acc-ink:#4a3bc7;
+  --bg:#f6f5fc;--card:#fff;--ink:#1e1b3a;--mute:#74708f;--line:#e4e1f3;--soft:#f3f1fb;
+  --ok:#168b63;--okbg:#eaf8f2;--okline:#9ad6bf;--bad:#c94455;--badbg:#fff1f3;--badline:#eab0b8;
+  --hard:#a05a00;--hardbg:#fff3df;--shadow:0 10px 30px rgba(26,20,70,.07)}
+@media (prefers-color-scheme:dark){:root{
+  --nav:#0f0b2b;--nav2:#221b5c;--nav-line:#322a80;--nav-ink:#b9b3e8;
+  --acc:#8b7bff;--acc2:#b18cff;--acc-soft:#251f5a;--acc-ink:#c8c0ff;
+  --bg:#12102a;--card:#1b1840;--ink:#ecebfa;--mute:#9a96bd;--line:#2d2961;--soft:#221e4d;
+  --ok:#58c58c;--okbg:#14301f;--okline:#2f7a52;--bad:#f08b84;--badbg:#3a1d26;--badline:#7a3340;
+  --hard:#f0b45a;--hardbg:#3a2c12;--shadow:0 10px 30px rgba(0,0,0,.35)}}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+button,input,select{font:inherit;color:inherit}button{cursor:pointer}
+.shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.shell.solo{grid-template-columns:1fr}
+.sidebar{background:linear-gradient(180deg,var(--nav),#241a6b);color:#fff;display:flex;flex-direction:column;justify-content:space-between;height:100vh;padding:24px 14px;position:sticky;top:0;overflow:auto}
+.brand{font-weight:900;font-size:21px;letter-spacing:-.3px;padding:0 10px 18px}
+.brand span{background:linear-gradient(90deg,#a99bff,#ff9bd2);-webkit-background-clip:text;background-clip:text;color:transparent}
+.navlabel{font-size:10px;letter-spacing:.14em;font-weight:800;color:var(--nav-ink);opacity:.8;padding:10px 12px 6px}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav button{display:flex;justify-content:space-between;gap:8px;text-align:left;background:0;border:0;color:var(--nav-ink);border-radius:11px;padding:10px 12px;font-weight:700;font-size:14px}
+.nav button small{opacity:.7;font-weight:600}
+.nav button.on,.nav button:hover{background:var(--nav2);color:#fff}
+.userbox{background:rgba(255,255,255,.07);border:1px solid var(--nav-line);border-radius:14px;padding:14px;font-size:13px}
+.userbox b{display:block;font-size:22px}.userbox small{color:var(--nav-ink)}
+.userbox button{margin-top:10px;background:0;border:0;color:var(--nav-ink);padding:0;text-decoration:underline;font-size:12px}
+.content{width:100%;max-width:1180px;margin:auto;padding:32px 36px 60px}
+.mobilebar{display:none}
+.eyebrow{font-size:11px;letter-spacing:.14em;font-weight:900;color:var(--acc-ink)}
+h1{font-size:34px;letter-spacing:-.03em;margin:4px 0 6px}h2{font-size:1.1rem;margin:0 0 8px}
+.pagehead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px}
+.pagehead p{color:var(--mute);margin:0;max-width:640px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:20px;margin-bottom:16px}
+.hero{background:linear-gradient(135deg,#2a1f78,#5b45e6 60%,#8b5cf6);color:#fff;border-radius:22px;padding:30px;box-shadow:var(--shadow);margin-bottom:18px}
+.hero h1{font-size:40px;margin:6px 0 8px}.hero p{color:#e3deff;margin:0;max-width:560px}
+.hero .eyebrow{color:#d6ccff}
+.tracks{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.track{text-align:left;padding:24px;border-radius:20px;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);transition:transform .12s,border-color .12s}
+.track:hover{transform:translateY(-2px);border-color:var(--acc)}
+.track h2{font-size:1.3rem;margin:10px 0 6px}.track p{color:var(--mute);margin:0 0 14px;font-size:14px}
+.track .mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.track .mini div{background:var(--soft);border-radius:11px;padding:10px}.mini b{display:block;font-size:20px}.mini small{color:var(--mute)}
+.pill{display:inline-block;font-size:10px;letter-spacing:.05em;font-weight:900;color:var(--acc-ink);background:var(--acc-soft);border-radius:99px;padding:5px 10px}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:11px;padding:10px 15px;font-weight:800}
+.btn.p{background:linear-gradient(135deg,var(--acc),var(--acc2));border-color:transparent;color:#fff}
+.btn.full{width:100%}.btn:disabled{opacity:.45;cursor:default}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.metric{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:16px 18px}
+.metric small{color:var(--mute)}.metric b{display:block;font-size:28px;margin-top:4px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.grid3 .card{margin:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.grow{flex:1}
 select,input[type=number]{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 10px;max-width:100%}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
-.stat{background:var(--bg);border-radius:10px;padding:10px;text-align:center}.stat b{display:block;font-size:1.3rem}
 .mute{color:var(--mute);font-size:.88rem}
-.opt{display:block;width:100%;text-align:left;margin:8px 0;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card)}
-.opt.ok{border-color:var(--ok);background:var(--okbg)}.opt.bad{border-color:var(--bad);background:var(--badbg)}.opt.sel{border-color:var(--acc);outline:2px solid var(--acc)}
-.expl{margin-top:10px;padding:12px;border-radius:10px;background:var(--bg);font-size:.95rem}
-.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--acc)}
-.tag{display:inline-block;font-size:.78rem;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin-right:6px}
-.timer{font-variant-numeric:tabular-nums;font-weight:600}.timer.low{color:var(--bad)}
-table{width:100%;border-collapse:collapse;font-size:.9rem}td,th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left}td.n,th.n{text-align:right}
-.hidden{display:none}
-.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.tabs button{flex:1;min-width:90px;text-align:center}.tabs button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.filters{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.filters label{font-size:13px;font-weight:700;display:flex;gap:8px;align-items:center}
+.seg{display:inline-flex;background:var(--soft);border-radius:11px;padding:4px;gap:2px}
+.seg button{background:0;border:0;border-radius:8px;padding:7px 13px;font-weight:800;color:var(--mute);font-size:13px}
+.seg button.on{background:var(--card);color:var(--acc-ink);box-shadow:0 2px 8px rgba(26,20,70,.1)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:9px 6px;border-top:1px solid var(--line);text-align:left}th{border-top:0;color:var(--mute);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+td.n,th.n{text-align:right}
+.meter{display:inline-block;width:70px;height:6px;border-radius:3px;background:var(--line);vertical-align:middle;margin-right:8px;overflow:hidden}.meter i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2))}
+.tag{display:inline-block;font-size:11px;font-weight:800;color:var(--acc-ink);background:var(--acc-soft);border-radius:99px;padding:4px 9px;margin:0 6px 6px 0}
+.tag.hard{color:var(--hard);background:var(--hardbg)}
+.runner{max-width:1060px;margin:auto;padding:24px 20px 60px}
+.rgrid{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:18px;align-items:start}
+.qpanel{padding:26px}
+.stem{font-size:21px;font-weight:700;line-height:1.45;margin:14px 0 18px}
+.opts{display:grid;gap:10px}
+.opt{display:flex;gap:12px;align-items:center;text-align:left;width:100%;border:1px solid var(--line);background:var(--card);border-radius:13px;padding:13px}
+.opt>b{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--soft)}
+.opt:hover{border-color:var(--acc)}
+.opt.sel{background:var(--acc-soft);border-color:var(--acc)}
+.opt.ok{background:var(--okbg);border-color:var(--okline)}.opt.bad{background:var(--badbg);border-color:var(--badline)}
+.fb{border-radius:13px;margin-top:16px;padding:15px;line-height:1.55;font-size:15px}
+.fb.ok{background:var(--okbg);border:1px solid var(--okline)}.fb.no{background:var(--badbg);border:1px solid var(--badline)}
+.actions{display:flex;justify-content:space-between;gap:10px;margin-top:18px}
+.side{display:flex;flex-direction:column;gap:12px}
+.sidecard{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px}
+.sidecard h4{margin:0 0 8px}.sidecard p{margin:0;color:var(--mute);font-size:13px}
+.bar{height:7px;background:var(--line);border-radius:4px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2))}
+.timer{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}.timer.low{color:var(--bad)}
+.result{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:16px}
+@media (max-width:950px){
+  .shell{grid-template-columns:1fr}.sidebar{display:none}
+  .mobilebar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .mobilebar select{flex:1}
+  .content{padding:18px 16px 50px}
+  .metrics{grid-template-columns:repeat(2,1fr)}.grid3,.tracks{grid-template-columns:1fr}
+  .rgrid{grid-template-columns:1fr}.side{display:grid;grid-template-columns:repeat(2,1fr)}
+  h1,.hero h1{font-size:28px}.stem{font-size:19px}
+}
+@media (max-width:560px){.side{grid-template-columns:1fr}.pagehead{flex-direction:column}}
 </style>
 </head>
 <body>
-<main id="app"></main>
+<div id="app"></div>
 <script src="data/questions.js"></script>
 <script>
 "use strict";
 const Q = window.QUESTIONS || [];
-const KEY = "ukom-coach-v1", SKEY = "ukom-coach-sub";
-const SUBS = ["Pengawasan", "Pemeriksaan", "Penagihan"];
-let SUB = ""; try { SUB = localStorage.getItem(SKEY) || ""; } catch (e) {}
-const scope = () => SUB ? Q.filter(q => q.sub === SUB) : Q;
+const KEY = "ukom-coach-v1", PKEY = "ukom-coach-prefs";
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-// ---------- persistence (per-question stats, Leitner boxes) ----------
+const SUBS = ["Pengawasan", "Pemeriksaan", "Penagihan"];
+const SKT = ["Advokasi Kebijakan Perpajakan", "Analisis Potensi Pajak", "Analisis Kepatuhan Wajib Pajak", "Profiling Wajib Pajak",
+             "Ekstensifikasi Perpajakan", "Pemeriksaan Pajak", "Analis Profil Risiko Wajib Pajak"];
+const LVLS = [["", "Semua"], ["standar", "Standar"], ["sulit", "Sulit"]];
+
 let store = {};
 try { store = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { store = {}; }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} };
+let prefs = { sub: "", unit: "", lvl: "", think: false };
+try { prefs = Object.assign(prefs, JSON.parse(localStorage.getItem(PKEY) || "{}")); } catch (e) {}
+const savePrefs = () => { try { localStorage.setItem(PKEY, JSON.stringify(prefs)); } catch (e) {} };
 const stat = id => store[id] || (store[id] = { n: 0, ok: 0, box: 0, due: 0, last: null });
-const DAY = 864e5, GAP = [0, 1, 2, 4, 7];            // days until next review per box
+const DAY = 864e5, GAP = [0, 1, 2, 4, 7];
 function record(id, correct) {
   const s = stat(id); s.n++; s.last = correct;
   if (correct) { s.ok++; s.box = Math.min(s.box + 1, 4); } else s.box = 0;
   s.due = Date.now() + GAP[s.box] * DAY; save();
 }
 
-// ---------- helpers ----------
+let MODE = "", S = null, tick = null;
+const base = () => MODE === "skt" ? Q.filter(q => SKT.includes(q.unit)) : Q;
+const scope = () => base().filter(q =>
+  (MODE !== "all" || !prefs.sub || q.sub === prefs.sub) &&
+  (MODE !== "skt" || !prefs.unit || q.unit === prefs.unit) &&
+  (!prefs.lvl || q.lvl === prefs.lvl));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const topics = () => [...new Set(scope().map(q => q.topic))];
-const wrongIds = () => scope().filter(q => store[q.id] && store[q.id].last === false);
-const dueIds = () => scope().filter(q => store[q.id] && store[q.id].box < 4 && store[q.id].n > 0 && store[q.id].due <= Date.now());
-const unseen = () => scope().filter(q => !store[q.id] || !store[q.id].n);
 const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
+const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+function summary(list) {
+  let seen = 0, att = 0, ok = 0;
+  list.forEach(q => { const s = store[q.id]; if (s && s.n) { seen++; att += s.n; ok += s.ok; } });
+  return { seen, att, ok, acc: att ? pct(ok, att) : 0 };
+}
 
-// ---------- session state ----------
-let S = null, tick = null;
-
-function home() {
-  clearInterval(tick); S = null;
-  const sc = scope(), seen = sc.length - unseen().length;
-  let att = 0, ok = 0; sc.forEach(q => { const s = store[q.id]; if (s) { att += s.n; ok += s.ok; } });
-  const tps = topics();
+// ---------- layar awal ----------
+function chooser() {
+  clearInterval(tick); S = null; MODE = "";
+  const skt = Q.filter(q => SKT.includes(q.unit)), a = summary(Q), b = summary(skt);
+  const card = (id, pill, title, desc, list, sm) => `
+    <button class="track" id="${id}"><span class="pill">${pill}</span><h2>${title}</h2><p>${desc}</p>
+      <div class="mini"><div><b>${list.length}</b><small>soal</small></div><div><b>${sm.seen}</b><small>dicoba</small></div><div><b>${sm.acc}%</b><small>akurasi</small></div></div>
+      <span class="btn p">Mulai belajar</span></button>`;
   $("#app").innerHTML = `
-  <h1>UKom Coach</h1>
-  <div class="tabs"><button data-sub="" class="${SUB ? "" : "on"}">Semua (${Q.length})</button>${SUBS.map(x => `<button data-sub="${x}" class="${SUB === x ? "on" : ""}">${x} (${Q.filter(q => q.sub === x).length})</button>`).join("")}</div>
-  <div class="card"><div class="stats">
-    <div class="stat"><b>${sc.length}</b>soal</div>
-    <div class="stat"><b>${seen}</b>sudah dicoba</div>
-    <div class="stat"><b>${att ? Math.round(ok / att * 100) : 0}%</b>akurasi</div>
-    <div class="stat"><b>${wrongIds().length}</b>perlu diulang</div>
-  </div></div>
-  ${Q.length ? "" : '<div class="card">Bank soal belum ada. Jalankan <code>python3 build.py</code>.</div>'}
-  <div class="card"><h2 style="margin-top:0">Latihan</h2>
-    <div class="row"><select id="topic" class="grow"><option value="">Semua topik</option>${tps.map(t => `<option>${esc(t)}</option>`).join("")}</select>
-    <select id="filter"><option value="all">Semua soal</option><option value="new">Belum dicoba</option><option value="wrong">Yang pernah salah</option></select></div>
-    <div class="row" style="margin-top:8px"><label>Jumlah <input id="cnt" type="number" min="5" max="200" value="30" style="width:80px"></label>
-    <button class="p" id="go-practice">Mulai latihan</button></div></div>
-  <div class="card"><h2 style="margin-top:0">Review (spaced repetition)</h2>
-    <p class="mute" style="margin:.2rem 0 .6rem">${dueIds().length} soal jatuh tempo. Benar naik level dan jedanya makin panjang, salah kembali ke awal.</p>
-    <button class="p" id="go-review" ${dueIds().length ? "" : "disabled"}>Review ${dueIds().length} soal</button></div>
-  <div class="card"><h2 style="margin-top:0">Simulasi ujian</h2>
-    <div class="row"><label>Soal <input id="ecnt" type="number" min="10" max="200" value="50" style="width:80px"></label>
-    <label>Menit <input id="emin" type="number" min="5" max="180" value="60" style="width:80px"></label>
-    <button class="p" id="go-exam">Mulai simulasi</button></div>
-    <p class="mute" style="margin:.5rem 0 0">Tanpa pembahasan sampai selesai. Soal diambil acak dari semua topik pada tab yang dipilih.</p></div>
-  <div class="card"><h2 style="margin-top:0">Per topik</h2><table><tr><th>Topik</th><th class="n">Soal</th><th class="n">Akurasi</th></tr>
-    ${tps.map(t => { const qs = sc.filter(q => q.topic === t); let a = 0, o = 0; qs.forEach(q => { const s = store[q.id]; if (s) { a += s.n; o += s.ok; } });
-      return `<tr><td>${esc(t)}</td><td class="n">${qs.length}</td><td class="n">${a ? Math.round(o / a * 100) + "%" : "-"}</td></tr>`; }).join("")}</table></div>
-  <div class="row"><button id="reset">Hapus progres</button></div>`;
-  document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { SUB = b.dataset.sub; try { localStorage.setItem(SKEY, SUB); } catch (e) {} home(); });
+  <div class="shell solo"><main class="content">
+    <section class="hero"><div class="eyebrow">UKOM COACH</div><h1>Belajar sampai terasa siap.</h1><p>Pilih cara belajar. Latihan, review berjarak, dan simulasi ujian tersedia di keduanya.</p></section>
+    <div class="tracks">
+      ${card("m-all", "SEMUA SOAL", "Belajar semua soal", "Dikelompokkan per subkategori: Pengawasan, Pemeriksaan, dan Penagihan.", Q, a)}
+      ${card("m-skt", "SESUAI SKT", "Sesuai SKT", "Dikelompokkan per 7 unit kompetensi pada Standar Kompetensi Teknis.", skt, b)}
+    </div></main></div>`;
+  $("#m-all").onclick = () => { MODE = "all"; home(); };
+  $("#m-skt").onclick = () => { MODE = "skt"; home(); };
+}
+
+// ---------- beranda per mode ----------
+function home() {
+  if (!MODE) return chooser();
+  clearInterval(tick); S = null;
+  const sc = scope(), b = base(), sm = summary(sc);
+  const wrong = sc.filter(q => store[q.id] && store[q.id].last === false);
+  const due = sc.filter(q => store[q.id] && store[q.id].box < 4 && store[q.id].n > 0 && store[q.id].due <= Date.now());
+  const keys = MODE === "all" ? SUBS : SKT, field = MODE === "all" ? "sub" : "unit", cur = prefs[field];
+  const topics = [...new Set(sc.map(q => q.topic))];
+  const nav = `<div class="navlabel">${MODE === "all" ? "SUBKATEGORI" : "UNIT KOMPETENSI (SKT)"}</div><div class="nav">
+      <button data-k="" class="${cur ? "" : "on"}"><span>Semua</span><small>${b.length}</small></button>
+      ${keys.map(k => `<button data-k="${esc(k)}" class="${cur === k ? "on" : ""}"><span>${esc(k)}</span><small>${b.filter(q => q[field] === k).length}</small></button>`).join("")}</div>`;
+  $("#app").innerHTML = `
+  <div class="shell">
+    <aside class="sidebar"><div><div class="brand"><span>UKom</span> Coach</div>
+      <div class="nav"><button id="back"><span>← Ganti mode</span></button></div>${nav}</div>
+      <div class="userbox"><small>Akurasi (filter aktif)</small><b>${sm.acc}%</b><small>${sm.seen} dari ${sc.length} soal dicoba</small><br><button id="reset">Hapus progres</button></div></aside>
+    <main class="content">
+      <div class="mobilebar"><button class="btn" id="back2">←</button>
+        <select id="mkey"><option value="">Semua (${b.length})</option>${keys.map(k => `<option value="${esc(k)}" ${cur === k ? "selected" : ""}>${esc(k)} (${b.filter(q => q[field] === k).length})</option>`).join("")}</select></div>
+      <div class="pagehead"><div><div class="eyebrow">${MODE === "all" ? "SEMUA SOAL" : "SESUAI SKT"}</div><h1>${cur ? esc(cur) : "Semua kategori"}</h1>
+        <p>${sc.length} soal pada filter ini. Pilih tingkat dan cara latihan di bawah.</p></div></div>
+      <div class="filters"><div class="seg" id="lvl">${LVLS.map(([v, t]) => `<button data-v="${v}" class="${prefs.lvl === v ? "on" : ""}">${t}</button>`).join("")}</div>
+        <label><input type="checkbox" id="think" ${prefs.think ? "checked" : ""}> Pikir dulu (pilihan disembunyikan)</label></div>
+      <div class="metrics">
+        <div class="metric"><small>Soal</small><b>${sc.length}</b></div>
+        <div class="metric"><small>Sudah dicoba</small><b>${sm.seen}</b></div>
+        <div class="metric"><small>Akurasi</small><b>${sm.acc}%</b></div>
+        <div class="metric"><small>Perlu diulang</small><b>${wrong.length}</b></div></div>
+      ${sc.length ? "" : '<div class="card">Tidak ada soal untuk filter ini.</div>'}
+      <div class="grid3">
+        <div class="card"><span class="pill">LATIHAN</span><h2 style="margin-top:10px">Latihan soal</h2>
+          <div class="row"><select id="topic" class="grow"><option value="">Semua topik</option>${topics.map(t => `<option>${esc(t)}</option>`).join("")}</select></div>
+          <div class="row" style="margin-top:8px"><select id="filter" class="grow"><option value="all">Semua soal</option><option value="new">Belum dicoba</option><option value="wrong">Yang pernah salah</option></select>
+            <input id="cnt" type="number" min="5" max="200" value="30" style="width:76px"></div>
+          <button class="btn p full" style="margin-top:12px" id="go-practice">Mulai latihan</button></div>
+        <div class="card"><span class="pill">REVIEW</span><h2 style="margin-top:10px">Spaced repetition</h2>
+          <p class="mute" style="margin:.2rem 0 .9rem">${due.length} soal jatuh tempo. Benar naik level dan jedanya makin panjang, salah kembali ke awal.</p>
+          <button class="btn p full" id="go-review" ${due.length ? "" : "disabled"}>Review ${due.length} soal</button></div>
+        <div class="card"><span class="pill">SIMULASI</span><h2 style="margin-top:10px">Simulasi ujian</h2>
+          <div class="row"><label class="mute">Soal <input id="ecnt" type="number" min="10" max="200" value="50" style="width:70px"></label>
+            <label class="mute">Menit <input id="emin" type="number" min="5" max="180" value="60" style="width:70px"></label></div>
+          <p class="mute" style="margin:.6rem 0 .9rem">Tanpa pembahasan sampai selesai.</p>
+          <button class="btn p full" id="go-exam">Mulai simulasi</button></div>
+      </div>
+      <div class="card" style="margin-top:16px"><h2>Per topik</h2><table><tr><th>Topik</th><th class="n">Soal</th><th class="n">Akurasi</th></tr>
+        ${topics.map(t => { const qs = sc.filter(q => q.topic === t), s = summary(qs);
+          return `<tr><td>${esc(t)}</td><td class="n">${qs.length}</td><td class="n">${s.att ? `<span class="meter"><i style="width:${s.acc}%"></i></span>${s.acc}%` : "-"}</td></tr>`; }).join("")}</table></div>
+    </main></div>`;
+  const back = () => chooser();
+  $("#back").onclick = back; $("#back2").onclick = back;
+  document.querySelectorAll(".nav button[data-k]").forEach(x => x.onclick = () => { prefs[field] = x.dataset.k; savePrefs(); home(); });
+  $("#mkey").onchange = e => { prefs[field] = e.target.value; savePrefs(); home(); };
+  document.querySelectorAll("#lvl button").forEach(x => x.onclick = () => { prefs.lvl = x.dataset.v; savePrefs(); home(); });
+  $("#think").onchange = e => { prefs.think = e.target.checked; savePrefs(); };
   $("#go-practice").onclick = () => {
     let pool = sc; const t = $("#topic").value, f = $("#filter").value;
     if (t) pool = pool.filter(q => q.topic === t);
@@ -109,40 +227,47 @@ function home() {
     if (f === "wrong") pool = pool.filter(q => store[q.id] && store[q.id].last === false);
     start("practice", pool, +$("#cnt").value);
   };
-  $("#go-review").onclick = () => start("practice", dueIds(), 200);
+  $("#go-review").onclick = () => start("practice", due, 200);
   $("#go-exam").onclick = () => start("exam", sc, +$("#ecnt").value, +$("#emin").value * 60000);
   $("#reset").onclick = () => { if (confirm("Hapus semua progres?")) { store = {}; save(); home(); } };
 }
 
 function start(mode, pool, n, ms) {
   if (!pool.length) { alert("Tidak ada soal untuk filter ini."); return; }
-  const items = shuffle(pool).slice(0, n || 30).map(q => {
-    const idx = shuffle([0, 1, 2, 3]);
-    return { q, idx, pick: null };            // idx[k] = original option index shown at position k
-  });
+  const items = shuffle(pool).slice(0, n || 30).map(q => ({ q, idx: shuffle([0, 1, 2, 3]), pick: null, shown: !prefs.think }));
   S = { mode, items, i: 0, end: ms ? Date.now() + ms : 0 };
   if (ms) { clearInterval(tick); tick = setInterval(() => { const t = $("#timer"); if (!t) return; const left = S.end - Date.now(); t.textContent = fmt(left); t.classList.toggle("low", left < 60000); if (left <= 0) finish(); }, 500); }
   show();
 }
 
+const tags = q => `${q.lvl === "sulit" ? '<span class="tag hard">Sulit</span>' : ""}<span class="tag">${esc(q.sub || "")}</span><span class="tag">${esc(q.unit || "")}</span><span class="tag">${esc(q.topic)}</span>`;
+
 function show() {
-  const it = S.items[S.i], q = it.q, exam = S.mode === "exam", done = it.pick !== null;
-  const L = "ABCD";
+  const it = S.items[S.i], q = it.q, exam = S.mode === "exam", done = it.pick !== null, L = "ABCD";
+  const right = done && it.idx[it.pick] === q.a;
   $("#app").innerHTML = `
-  <div class="row"><button id="quit">Keluar</button><span class="grow mute">Soal ${S.i + 1} / ${S.items.length}</span>${exam ? '<span class="timer" id="timer">' + fmt(S.end - Date.now()) + "</span>" : ""}</div>
-  <div class="bar"><i style="width:${(S.i + 1) / S.items.length * 100}%"></i></div>
-  <div class="card"><div><span class="tag">${esc(q.sub || "")}</span><span class="tag">${esc(q.topic)}</span><span class="tag">${esc(q.src)}</span></div>
-    <p style="font-size:1.05rem;margin:.8rem 0">${esc(q.q)}</p>
-    ${it.idx.map((oi, k) => {
-      let c = "opt";
-      if (done && !exam) c += oi === q.a ? " ok" : (k === it.pick ? " bad" : "");
-      else if (k === it.pick) c += " sel";
-      return `<button class="${c}" data-k="${k}"><b>${L[k]}.</b> ${esc(q.o[oi])}</button>`;
-    }).join("")}
-    ${done && !exam ? `<div class="expl"><b>${it.idx[it.pick] === q.a ? "Benar." : "Salah. Jawaban: " + L[it.idx.indexOf(q.a)] + "."}</b> ${esc(q.e)}</div>` : ""}
-  </div>
-  <div class="row"><button id="prev" ${S.i ? "" : "disabled"}>Sebelumnya</button><span class="grow"></span>
-    ${S.i < S.items.length - 1 ? '<button class="p" id="next" ' + (done || exam ? "" : "disabled") + ">Berikutnya</button>" : '<button class="p" id="fin" ' + (done || exam ? "" : "disabled") + ">Selesai</button>"}</div>`;
+  <div class="runner"><div class="rgrid">
+    <div>
+      <div class="card qpanel"><div>${tags(q)}</div>
+        <div class="stem">${esc(q.q)}</div>
+        <div class="opts">${it.shown ? it.idx.map((oi, k) => {
+          let c = "opt";
+          if (done && !exam) c += oi === q.a ? " ok" : (k === it.pick ? " bad" : "");
+          else if (k === it.pick) c += " sel";
+          return `<button class="${c}" data-k="${k}"><b>${L[k]}</b><span>${esc(q.o[oi])}</span></button>`;
+        }).join("") : '<p class="mute">Jawab dulu di kepala, lalu tampilkan pilihan.</p><button class="btn p" id="reveal">Tampilkan pilihan</button>'}</div>
+        ${done && !exam ? `<div class="fb ${right ? "ok" : "no"}"><b>${right ? "Benar." : "Salah. Jawaban: " + L[it.idx.indexOf(q.a)] + "."}</b> ${esc(q.e)}</div>` : ""}
+      </div>
+      <div class="actions"><button class="btn" id="prev" ${S.i ? "" : "disabled"}>Sebelumnya</button>
+        ${S.i < S.items.length - 1 ? '<button class="btn p" id="next" ' + (done || exam ? "" : "disabled") + ">Berikutnya</button>" : '<button class="btn p" id="fin" ' + (done || exam ? "" : "disabled") + ">Selesai</button>"}</div>
+    </div>
+    <div class="side">
+      <div class="sidecard"><h4>Progres</h4><p>Soal ${S.i + 1} dari ${S.items.length}</p><div class="bar"><i style="width:${(S.i + 1) / S.items.length * 100}%"></i></div></div>
+      ${exam ? `<div class="sidecard"><h4>Sisa waktu</h4><div class="timer" id="timer">${fmt(S.end - Date.now())}</div></div>` : ""}
+      <div class="sidecard"><h4>${exam ? "Mode ujian" : "Mode latihan"}</h4><p>${exam ? "Pembahasan muncul setelah selesai." : "Pembahasan muncul setelah menjawab."}</p></div>
+      <button class="btn" id="quit">Keluar sesi</button>
+    </div></div></div>`;
+  const rv = $("#reveal"); if (rv) rv.onclick = () => { it.shown = true; show(); };
   document.querySelectorAll(".opt").forEach(b => b.onclick = () => {
     if (!exam && it.pick !== null) return;
     it.pick = +b.dataset.k;
@@ -158,21 +283,21 @@ function show() {
 function finish() {
   clearInterval(tick);
   const exam = S.mode === "exam";
-  if (exam) S.items.forEach(it => { if (it.pick !== null) record(it.q.id, it.idx[it.pick] === it.q.a); else record(it.q.id, false); });
+  if (exam) S.items.forEach(it => record(it.q.id, it.pick !== null && it.idx[it.pick] === it.q.a));
   const ok = S.items.filter(it => it.pick !== null && it.idx[it.pick] === it.q.a).length, tot = S.items.length;
   const wrong = S.items.filter(it => !(it.pick !== null && it.idx[it.pick] === it.q.a));
   $("#app").innerHTML = `
-  <h1>Hasil</h1>
-  <div class="card"><div class="stats"><div class="stat"><b>${ok}/${tot}</b>benar</div><div class="stat"><b>${Math.round(ok / tot * 100)}%</b>nilai</div></div></div>
-  ${wrong.length ? `<h2>Perlu dibahas (${wrong.length})</h2>` + wrong.map(it => { const q = it.q;
-    return `<div class="card"><div><span class="tag">${esc(q.topic)}</span><span class="tag">${esc(q.src)}</span></div><p>${esc(q.q)}</p>
-    <div class="mute">Jawabanmu: ${it.pick === null ? "(kosong)" : esc(q.o[it.idx[it.pick]])}</div>
-    <div><b style="color:var(--ok)">Benar: ${esc(q.o[q.a])}</b></div><div class="expl">${esc(q.e)}</div></div>`; }).join("") : ""}
-  <div class="row"><button class="p" id="home">Kembali</button></div>`;
+  <div class="runner"><div class="eyebrow">HASIL</div><h1>${pct(ok, tot)}%</h1>
+    <div class="result"><div class="metric"><small>Benar</small><b>${ok} / ${tot}</b></div><div class="metric"><small>Perlu dibahas</small><b>${wrong.length}</b></div></div>
+    ${wrong.map(it => { const q = it.q;
+      return `<div class="card"><div>${tags(q)}</div><p style="font-weight:700">${esc(q.q)}</p>
+      <div class="mute">Jawabanmu: ${it.pick === null ? "(kosong)" : esc(q.o[it.idx[it.pick]])}</div>
+      <div style="margin:6px 0"><b style="color:var(--ok)">Benar: ${esc(q.o[q.a])}</b></div><div class="fb no">${esc(q.e)}</div></div>`; }).join("")}
+    <button class="btn p" id="home">Kembali</button></div>`;
   $("#home").onclick = home;
 }
 
-home();
+chooser();
 </script>
 </body>
 </html>
