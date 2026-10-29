@@ -39,10 +39,13 @@ table{width:100%;border-collapse:collapse;font-size:.9rem}td,th{padding:6px 4px;
 <script>
 "use strict";
 const Q = window.QUESTIONS || [];
-const KEY = "ukom-coach-v1", SKEY = "ukom-coach-sub";
+const KEY = "ukom-coach-v1", SKEY = "ukom-coach-sub", UKEY = "ukom-coach-unit";
 const SUBS = ["Pengawasan", "Pemeriksaan", "Penagihan"];
 let SUB = ""; try { SUB = localStorage.getItem(SKEY) || ""; } catch (e) {}
-const scope = () => SUB ? Q.filter(q => q.sub === SUB) : Q;
+let UNIT = ""; try { UNIT = localStorage.getItem(UKEY) || ""; } catch (e) {}
+const UNITS = [...new Set(Q.map(q => q.unit).filter(Boolean))];
+if (UNIT && !UNITS.includes(UNIT)) UNIT = "";
+const scope = () => Q.filter(q => (!SUB || q.sub === SUB) && (!UNIT || q.unit === UNIT));
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -77,6 +80,7 @@ function home() {
   $("#app").innerHTML = `
   <h1>UKom Coach</h1>
   <div class="tabs"><button data-sub="" class="${SUB ? "" : "on"}">Semua (${Q.length})</button>${SUBS.map(x => `<button data-sub="${x}" class="${SUB === x ? "on" : ""}">${x} (${Q.filter(q => q.sub === x).length})</button>`).join("")}</div>
+  <div class="row" style="margin-bottom:12px"><select id="unit" class="grow"><option value="">Semua unit kompetensi</option>${UNITS.map(u => `<option ${u === UNIT ? "selected" : ""} value="${esc(u)}">${esc(u)} (${Q.filter(q => q.unit === u && (!SUB || q.sub === SUB)).length})</option>`).join("")}</select></div>
   <div class="card"><div class="stats">
     <div class="stat"><b>${sc.length}</b>soal</div>
     <div class="stat"><b>${seen}</b>sudah dicoba</div>
@@ -102,6 +106,7 @@ function home() {
       return `<tr><td>${esc(t)}</td><td class="n">${qs.length}</td><td class="n">${a ? Math.round(o / a * 100) + "%" : "-"}</td></tr>`; }).join("")}</table></div>
   <div class="row"><button id="reset">Hapus progres</button></div>`;
   document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { SUB = b.dataset.sub; try { localStorage.setItem(SKEY, SUB); } catch (e) {} home(); });
+  $("#unit").onchange = e => { UNIT = e.target.value; try { localStorage.setItem(UKEY, UNIT); } catch (er) {} home(); };
   $("#go-practice").onclick = () => {
     let pool = sc; const t = $("#topic").value, f = $("#filter").value;
     if (t) pool = pool.filter(q => q.topic === t);
@@ -131,7 +136,7 @@ function show() {
   $("#app").innerHTML = `
   <div class="row"><button id="quit">Keluar</button><span class="grow mute">Soal ${S.i + 1} / ${S.items.length}</span>${exam ? '<span class="timer" id="timer">' + fmt(S.end - Date.now()) + "</span>" : ""}</div>
   <div class="bar"><i style="width:${(S.i + 1) / S.items.length * 100}%"></i></div>
-  <div class="card"><div><span class="tag">${esc(q.sub || "")}</span><span class="tag">${esc(q.topic)}</span><span class="tag">${esc(q.src)}</span></div>
+  <div class="card"><div><span class="tag">${esc(q.unit || q.sub || "")}</span><span class="tag">${esc(q.topic)}</span><span class="tag">${esc(q.src)}</span></div>
     <p style="font-size:1.05rem;margin:.8rem 0">${esc(q.q)}</p>
     ${it.idx.map((oi, k) => {
       let c = "opt";

@@ -7,6 +7,23 @@ import sys
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 SUBS = {"c": "Pengawasan", "p": "Pemeriksaan", "t": "Penagihan"}
+
+# Unit Kompetensi pada Standar Kompetensi Teknis (7 unit) + penagihan di luar daftar itu.
+ADV, POT, KEP, PRO, EKS, PMR, RSK, LUAR = ("Advokasi Kebijakan Perpajakan", "Analisis Potensi Pajak", "Analisis Kepatuhan Wajib Pajak",
+    "Profiling Wajib Pajak", "Ekstensifikasi Perpajakan", "Pemeriksaan Pajak", "Analis Profil Risiko Wajib Pajak", "Penagihan (di luar 7 unit)")
+UNIT_BY_TOPIC = {
+    "Analisis Potensi Pajak": POT, "PP 20/2026": POT, "Analisis Potensi: Bank": POT,
+    "CRM Sektor Rokok": RSK, "CRM Sektor Otomotif": RSK, "CRM Penagihan": RSK,
+    "Pengawasan WP Belum Terdaftar": EKS,
+    "PMK 111/2025 (Pengawasan)": KEP, "Coretax & ND Pengawasan": KEP, "WP Non Aktif (NA TD)": KEP, "Imbauan Massal & NATD": KEP,
+    "PMK 172/2023 (PKKU)": KEP,
+    "Profiling WP": PRO, "Profiling WP (KPDL)": PRO, "Profiling Penanggung Pajak": PRO,
+    "KUP – Pemeriksaan": PMR, "PMK 15/2025 (Pemeriksaan)": PMR, "Pemeriksaan PBB": PMR, "Data Konkret (PER-18/PJ/2025)": PMR,
+    "Pengusulan Pemeriksaan": PMR,
+    "Dasar Hukum Penagihan": ADV, "Pengertian Penagihan": ADV, "Utang Pajak dan Biaya Penagihan": ADV, "Dasar Penagihan": ADV,
+    "Penanggung Pajak": ADV, "Upaya Hukum Gugatan Penagihan": ADV,
+}
+UNIT_DEFAULT = {"Pengawasan": ADV, "Pemeriksaan": PMR, "Penagihan": LUAR}
 parts = sorted(glob.glob(os.path.join(ROOT, "data", "parts", "*.json")))
 questions, errors, seen = [], [], set()
 
@@ -30,6 +47,7 @@ for path in parts:
         seen.add(it.get("q"))
         it["id"] = qid
         it["sub"] = SUBS[name[0]]
+        it["unit"] = UNIT_BY_TOPIC.get(it.get("topic"), UNIT_DEFAULT[it["sub"]])
         questions.append(it)
 
 if errors:
